@@ -1,0 +1,49 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    /* Degradado profundo estilo supercomputador */
+    background: radial-gradient(circle, #1e293b 0%, #0f172a 100%); 
+    overflow: hidden;
+}
+
+#viewer {
+    width: 100vw;
+    height: 100vh;
+    /* No ponemos color de fondo aquí para que se vea el del body */
+}
+#controls {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px); /* Efecto cristal */
+    padding: 20px;
+    border-radius: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    width: 320px;
+}
+
+textarea {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    color: #00ffcc;
+    border: 1px solid #334155;
+    font-family: monospace;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+button {
+    background: #2563eb;
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    width: 100%;
+    margin-top: 10px;
+}
