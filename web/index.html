@@ -49,12 +49,7 @@
                 <!-- Panel superior izquierdo -->
                 <div id="config">
                     <div class="presets">
-                        <label>Configuración:</label>
-                        <select id="preset-select">
-                            <option value="fast">Vista rápida (Átomos C-α)</option>
-                            <option value="standard" selected>Estándar (AlphaFold2)</option>
-                            <option value="high">Alta precisión (Relax AMBER)</option>
-                        </select>
+                        <label>Colores:</label>
                     </div>
 
                     <div id="color-controls"> 
@@ -64,7 +59,6 @@
                             <button class="color-btn" data-scheme="ss" title="Ver plegamiento y forma">Global(ssPyMol)</button>
                             <button class="color-btn" data-scheme="element" title="Enlaces químicos">Atómico(Jmol)</button>
                         </div>
-                        <button id="btn-palette" title="Cambiar esquema de color">🎨</button>
                     </div>
                     
             
@@ -72,11 +66,16 @@
 
                 <!-- Panel intermedio izquierdo-->
                 <div class="left-box">
+                    <p> Seleccione el preset: </p>
+                    <select id="preset-select">
+                        <option value="fast">Vista rápida (Átomos C-α)</option>
+                        <option value="standard" selected>Estándar (AlphaFold2)</option>
+                        <option value="high">Alta precisión (Relax AMBER)</option>
+                    </select>
                     <div id="drop-zone">
                         <textarea id="fasta" placeholder="Pega tu texto FASTA aquí o suelte un archivo"></textarea>
                     </div>
-                    <button id="button-run">Predecir Estructura</button>
-                    <div id="status">Listo para procesar</div>
+                    <button id="button-run">Renderizar modelo 3D</button>
                 </div>
 
 
@@ -89,7 +88,14 @@
 
             <div class="side-column">
                 <!-- Panel superior derecho -->
-                 <div style="height: 60px;"></div>
+                 <div id="history">
+                    <h4>Recientes</h4>
+                    <div id="history-container">
+                        <div class="history-item empty">Proteina reciente 1</div>
+                        <div class="history-item empty">Proteina reciente 2</div>
+                        <div class="history-item empty">Proteina reciente 3</div>
+                    </div>
+                </div>
 
                 <!-- Panel intermedio derecho -->
                 <div id="stats">

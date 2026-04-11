@@ -87,30 +87,8 @@ body, html {
     width: 100%;
 }
 
-#btn-palette {
-    width: 45px;
-    height: 45px;
-    font-size: 18px;
-    border-radius: 50%;
-    background: rgba(56, 189, 248, 0.15);
-    border: 1px solid rgba(56, 189, 248, 0.4);
-    margin: 0; 
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    margin-top: 20px;
-}
-
-#btn-palette:hover {
-    background: rgba(56, 189, 248, 0.3);
-    transform: scale(1.05);
-}
-
 #color-menu {
     width: 100%;
-    display: none;
     grid-template-columns: 1fr 1fr;
     gap: 8px;
 }
@@ -246,4 +224,59 @@ textarea {
     transition: opacity 0.5s ease, visibility 0.5s ease;
     opacity: 1;
     visibility: visible;
+}
+
+
+#recent-history {
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+#recent-history h4 {
+    margin: 0 0 10px 0;
+    font-size: 0.8rem;
+    color: #38bdf8;
+    text-transform: uppercase;
+}
+
+#history-container {
+    display: flex;
+    gap: 10px;
+    justify-content: space-between;
+}
+
+.history-item {
+    width: 100px;
+    height: 80px;
+    background: #000;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    cursor: pointer;
+    overflow: hidden;
+    position: relative;
+    transition: transform 0.2s, border-color 0.2s;
+}
+
+.history-item:hover {
+    transform: scale(1.05);
+    border-color: #00ffcc;
+}
+
+.history-item.empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    color: #475569;
+    background: rgba(0,0,0,0.2);
+}
+
+/* Imagen de la proteína en la miniatura */
+.history-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }

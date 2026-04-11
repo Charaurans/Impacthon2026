@@ -2,6 +2,7 @@
 
 const API_URL = "https://api-mock-cesga.onrender.com";
 let viewer;
+let fullLog ="";
 
 // --- NAVEGACIÓN SPA ---
 const showSection = (sectionId) => {
@@ -38,7 +39,7 @@ window.onload = () => {
         const PASS_VALIDO = "test";
 
         if (userField === USUARIO_VALIDO && passField === PASS_VALIDO) {
-        console.log("Acceso concedido al portal LocalFold");
+        console.log("Sesión iniciada");
         showSection('sec-dashboard');
         } else {
             alert("Nombre de usuario o contraseña incorrectos.");
@@ -54,16 +55,11 @@ window.onload = () => {
     // Manejo de Envío de Jobs
     btnRun.onclick = async () => {
         const fasta = fastaTextArea.value.trim();
-        const status = document.getElementById('status');
         const overlay = document.getElementById('loading-overlay');
         const loadtext = document.getElementById('loading-subtext');
         const preset = document.getElementById('preset-select').value;
         let config = {};
 
-        if (!fasta.startsWith('>')) {
-            status.innerText = "Error: El FASTA debe empezar por '>'";
-            return;
-        }
 
         switch (preset) {
             case 'fast':
@@ -76,13 +72,10 @@ window.onload = () => {
                 config = { cpus: 8, gpus: 1, memory_gb: 32, max_runtime_seconds: 3600 };
         }
 
-        document.getElementById('log-content').innerHTML = "";
-        addLog("Iniciando sesión en nodo de login del CESGA...");
-
         overlay.style.display = 'flex';
 
         try {
-            addLog(`Configurando job con preset: ${preset.toUpperCase()}`);
+            addLog(`Configurando renderizado con preset: ${preset.toUpperCase()}`);
 
             const requestBody = {
                 "fasta_filename": "ubiquitin.fasta",
@@ -100,14 +93,27 @@ window.onload = () => {
 
             const { job_id } = await res.json();
 
-            addLog(`Job enviado correctamente. ID: ${job_id}`);
+            if(job_id == undefined){
+                addLog("Hay un error en el FASTA");
+                return
+            }
+
+            addLog(`Comienza el job con ID: ${job_id}`);
 
             let jobReady = false;
+            let lastStatus = "";
             while (!jobReady) {
                 const poll = await fetch(`${API_URL}/jobs/${job_id}/status`);
                 const data = await poll.json();
+                const currentStatus = data.status;
+                
+                if (currentStatus !== lastStatus) {
+                    const color = currentStatus === 'COMPLETED' ? '#4ade80' : '#ffea00';
+                    addLog("Estado del Job: " + currentStatus);
+                    
+                    lastStatus = currentStatus; // Actualizamos el último estado rastreado
+                }
 
-                addLog(`Verificando cola de Slurm... Estado: <span style="color: #00ffcc">${data.status}</span>`);
                 loadtext.innerText = `Estado: ${data.status.toUpperCase()}`;
                 
                 if (data.status === 'COMPLETED'){
@@ -119,7 +125,7 @@ window.onload = () => {
                 }
             }
 
-            addLog("Job completado. Extrayendo archivos PDB y métricas PAE...");
+            addLog("El renderizado terminará en breves instantes");
 
             const out = await fetch(`${API_URL}/jobs/${job_id}/outputs`);
             const results = await out.json();
@@ -153,9 +159,8 @@ window.onload = () => {
             document.getElementById('btn-download-logs').onclick = () => {
                 const logContent = document.getElementById('log-content');
                 const btn = document.getElementById('btn-download-logs');
-                const fullLogs = logContent.innerText;
 
-                if (!fullLogs || fullLogs.trim() === "") {
+                if (!fullLog || fullLog.trim() === "") {
                     const originalText = btn.innerText;
                     btn.innerText = "⚠️ Sin datos";
                     btn.style.backgroundColor = "#ef4444"; // Color rojo suave
@@ -171,7 +176,7 @@ window.onload = () => {
                 const fileContent = `HISTORIAL DE EJECUCIÓN - PORTAL LOCALFOLD (CESGA)\n` +
                         `================================================\n` +
                         `Fecha de descarga: ${new Date().toLocaleString()}\n\n` +
-                        fullLogs;
+                        fullLog;
                 
 
                 // Crear el archivo y descargarlo
@@ -212,13 +217,7 @@ window.onload = () => {
     });
 
     // --- LÓGICA DEL MENÚ DE COLORES ---
-    const btnPalette = document.getElementById('btn-palette');
     const colorMenu = document.getElementById('color-menu');
-
-    // Desplegar/ocultar el menú
-    btnPalette.onclick = () => {
-        colorMenu.classList.toggle('show');
-    };
 
     // Aplicar estilos a la proteína según el botón pulsado
     document.querySelectorAll('.color-btn').forEach(btn => {
@@ -375,10 +374,13 @@ const addLog = (message) => {
     const timestamp = new Date().toLocaleTimeString();
     const newLine = document.createElement('div');
     
-    newLine.innerHTML = `<span style="color: #555;">[${timestamp}]</span>`;
+    // Mostramos los logs por pantalla
+    newLine.innerHTML = timestamp + " ";
     newLine.append(message);
-
     logContent.appendChild(newLine);
+
+    // Guardamos el log en el acumulador
+    fullLog += timestamp + " " + message + "\n";
 
     // Auto-scroll hacia abajo
     document.getElementById('log-monitor').scrollTop = document.getElementById('log-monitor').scrollHeight;
