@@ -1,4 +1,3 @@
-```markdown
 # ✍️ Autores
 
 El desarrollo de esta aplicación ha sido posible gracias al trabajo de:
