@@ -44,6 +44,7 @@
         <section id="sec-dashboard" class="spa-section">
             <div id="viewer"></div>
 
+            <!-- Columna izquierda -->
             <div class="side-column">
                 <!-- Panel superior izquierdo -->
                 <div id="config">
@@ -72,8 +73,7 @@
                 <!-- Panel intermedio izquierdo-->
                 <div class="left-box">
                     <div id="drop-zone">
-                        <textarea id="fasta" placeholder="Pega tu secuencia FASTA aquí..."></textarea>
-                        <p id="drop-overlay">Suelte el archivo FASTA aquí</p>
+                        <textarea id="fasta" placeholder="Pega tu texto FASTA aquí o suelte un archivo"></textarea>
                     </div>
                     <button id="button-run">Predecir Estructura</button>
                     <div id="status">Listo para procesar</div>
@@ -81,7 +81,9 @@
 
 
                 <!-- Panel inferior izquierdo -->
-                <div id="heat-map">
+                <div class="pae-box">
+                        <p>Matriz PAE (Error Alineado):</p>
+                        <img id="pae-image" src="" alt="Heatmap PAE" style="width:100%; border-radius:5px; margin-bottom:10px; border: 1px solid #334155;">
                 </div>
             </div>
 
@@ -95,17 +97,11 @@
                     <div id="result-panel" style="display:none; margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
                         <h4>Análisis de Confianza</h4>
                         <p>pLDDT Medio: <strong id="avg-plddt">--</strong>%</p>
-                        
-                        <div class="pae-box">
-                            <p>Matriz PAE (Error Alineado):</p>
-                            <img id="pae-image" src="" alt="Heatmap PAE" style="width:100%; border-radius:5px; margin-bottom:10px; border: 1px solid #334155;">
-                        </div>
 
                         <div class="download-group">
                             <button id="btn-download-pdb" class="btn-sm">💾 PDB</button>
                             <button id="btn-download-logs" class="btn-sm">📄 Logs</button>
                         </div>
-                        <button id="btn-view-logs" class="btn-sm">👁 Ver Logs</button>
                     </div>
                 </div>
 

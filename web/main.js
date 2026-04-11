@@ -139,7 +139,7 @@ window.onload = () => {
             avgPlddtText.innerText = plddtAvg;
             paeImage.src = paeUrl;
 
-            // 2. Lógica de Descarga de PDB
+            // DESCARGAR PDB
             document.getElementById('btn-download-pdb').onclick = () => {
                 const blob = new Blob([results.structural_data.pdb_file], { type: 'text/plain' });
                 const url = window.URL.createObjectURL(blob);
@@ -149,21 +149,41 @@ window.onload = () => {
                 a.click();
             };
 
-            // 3. Lógica de Descarga de Logs
+            // DESCARGAR LOGS
             document.getElementById('btn-download-logs').onclick = () => {
-                const logContent = `LOGS DE EJECUCIÓN - FINIS TERRAE III\n
-                Job ID: ${results.job_id}\n
-                Timestamp: ${new Date().toISOString()}\n
-                Status: COMPLETED\n
-                Hardware: NVIDIA A100 80GB\n
-                Config: ${document.getElementById('preset-select').value}`;
+                const logContent = document.getElementById('log-content');
+                const btn = document.getElementById('btn-download-logs');
+                const fullLogs = logContent.innerText;
+
+                if (!fullLogs || fullLogs.trim() === "") {
+                    const originalText = btn.innerText;
+                    btn.innerText = "⚠️ Sin datos";
+                    btn.style.backgroundColor = "#ef4444"; // Color rojo suave
+                    
+                    setTimeout(() => {
+                        btn.innerText = originalText;
+                        btn.style.backgroundColor = ""; // Vuelve al estilo del CSS
+                    }, 2000);
+                    return;
+                }
                 
-                const blob = new Blob([logContent], { type: 'text/plain' });
+                // Encabezado del log
+                const fileContent = `HISTORIAL DE EJECUCIÓN - PORTAL LOCALFOLD (CESGA)\n` +
+                        `================================================\n` +
+                        `Fecha de descarga: ${new Date().toLocaleString()}\n\n` +
+                        fullLogs;
+                
+
+                // Crear el archivo y descargarlo
+                const blob = new Blob([fileContent], { type: 'text/plain' });
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = "slurm_output.log";
+                a.download = `logs_job_${new Date().getTime()}.txt`;
                 a.click();
+
+                // Limpieza
+                window.URL.revokeObjectURL(url);
             };
 
             renderProtein(id, file);
@@ -354,8 +374,12 @@ const addLog = (message) => {
     const logContent = document.getElementById('log-content');
     const timestamp = new Date().toLocaleTimeString();
     const newLine = document.createElement('div');
-    newLine.innerHTML = `<span style="color: #555;">[${timestamp}]</span> ${message}`;
+    
+    newLine.innerHTML = `<span style="color: #555;">[${timestamp}]</span>`;
+    newLine.append(message);
+
     logContent.appendChild(newLine);
+
     // Auto-scroll hacia abajo
     document.getElementById('log-monitor').scrollTop = document.getElementById('log-monitor').scrollHeight;
 };
