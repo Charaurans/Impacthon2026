@@ -61,8 +61,9 @@ document.getElementById('btn-run').addEventListener('click', async () => {
         const out = await fetch(`${API_URL}/jobs/${job_id}/outputs`);
         const results = await out.json();
         
-        renderProtein(results.structural_data.pdb_file);
-        status.innerText = "¡Proteína cargada!";
+        status.innerText = "¡Proteína cargada! Su id es el siguiente : " + results.protein_metadata.pdb_id;
+        renderProtein(results.protein_metadata.pdb_id);
+        
 
     } catch (err) {
         status.innerText = "Error: " + err.message;
@@ -70,22 +71,17 @@ document.getElementById('btn-run').addEventListener('click', async () => {
     }
 });
 
-function renderProtein(pdbData) {
+function renderProtein(pdbId) {
+    if (!viewer) return;
+
+    // Limpiamos antes de la nueva descarga
     viewer.clear();
-    viewer.addModel(pdbData, "pdb");
-    
-    // Coloreado oficial AlphaFold por pLDDT [cite: 585, 586, 587]
-    viewer.setStyle({}, {
-        cartoon: {
-            colorfunc: (a) => {
-                if (a.b >= 90) return "#0053D6"; // Azul oscuro: Muy alta confianza [cite: 586]
-                if (a.b >= 70) return "#65CBFF"; // Azul claro: Alta confianza [cite: 587]
-                if (a.b >= 50) return "#FFD321"; // Amarillo: Confianza media [cite: 587]
-                return "#FF7D45";                // Naranja: Baja confianza [cite: 587]
-            }
-        }
+
+    // 3Dmol.download es asíncrono y gestiona la petición por ti
+    $3Dmol.download(`pdb:${pdbId}`, viewer, {}, function() {
+        viewer.setStyle({}, { cartoon: { color: 'spectrum' } });
+        viewer.zoomTo();
+        viewer.render();
+        console.log("Proteína cargada vía download:", pdbId);
     });
-    
-    viewer.zoomTo();
-    viewer.render();
 }
