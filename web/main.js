@@ -135,21 +135,31 @@ window.onload = () => {
 
         addLog("Descargando resultados...");
 
-        // 4. Procesamiento de Resultados (Mapping del JSON)
+        // Procesamos la salida del job
         const out = await fetch(`${API_URL}/jobs/${job_id}/outputs`);
         const results = await out.json();
 
+        console.log("Salida bro:", results);
         // Extraemos referencias de los objetos principales
         const meta = results.protein_metadata;
         const structural = results.structural_data;
         const biological = results.biological_data;
 
-        // Actualizamos UI de métricas
-        const resultPanel = document.getElementById('result-panel');
-        resultPanel.style.display = 'block';
+        // Conseguimos los textos del html
+        const nameText = document.getElementById('name');
+        const avgPlddtText = document.getElementById('avg-plddt');
+        const solubilityText = document.getElementById('solubility');
 
-        // Mapeo de datos biológicos
-        document.getElementById('avg-plddt').innerText = meta.plddt_average || "--";
+        // Extraemos los valores
+        const nameValue = meta.protein_name;
+        const plddtAvg = structural.confidence.plddt_mean;
+        const solubility = biological.solubility_score;
+
+        // Asignamos los valores a los textos
+        nameText.innerText = nameValue;
+        avgPlddtText.innerText = plddtAvg.toFixed(2);
+        solubilityText.innerText = solubility.toFixed(2);
+
         if(document.getElementById('peso-mol')) {
             document.getElementById('peso-mol').innerText = biological.sequence_properties.molecular_weight_kda.toFixed(2);
         }
@@ -229,14 +239,13 @@ window.onload = () => {
 
             switch (scheme) {
                 case 'plddt':
-                    // Tu esquema original basado en AlphaFold/LocalFold
                     styleSpec = {
                         cartoon: {
                             colorfunc: (atom) => {
-                                if (atom.b >= 90) return "#0053D6";
-                                if (atom.b >= 70) return "#65CBFF";
-                                if (atom.b >= 50) return "#FFD321";
-                                return "#FF7D45";
+                                if (atom.b >= 90) return "#FF7D45";
+                                if (atom.b >= 70) return "#FFD321";
+                                if (atom.b >= 50) return "#65CBFF";
+                                return "#0053D6";
                             }
                         }
                     };
