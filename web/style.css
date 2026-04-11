@@ -353,3 +353,44 @@ textarea {
     fill: #1e293b !important;
     stroke: #38bdf8 !important;
 }
+
+.legend-box-dynamic {
+    position: absolute;
+    top: 20px;            /* La movemos a la parte superior */
+    left: 50%;            /* La centramos horizontalmente */
+    transform: translateX(-50%); /* Ajuste exacto para que el centro de la caja coincida con el centro de la pantalla */
+    
+    background: rgba(15, 23, 42, 0.9);
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 0.75rem;
+    z-index: 100;
+    pointer-events: none;
+    display: none; 
+
+    /* Añadimos esto para que los items salgan en fila (opcional) */
+    display: flex;
+    flex-direction: row;
+    gap: 15px;
+    align-items: center;
+}
+
+/* Ajuste para que el título no rompa la fila si usas el modo horizontal */
+.legend-box-dynamic strong {
+    margin-right: 10px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    margin-right: 8px;
+}

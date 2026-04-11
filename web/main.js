@@ -7,6 +7,7 @@ let fullLog ="";
 let currentPdbData = null;
 let currentPdbId = "sintetica";
 let proteinHistory = [];
+let currentResults = null;
 
 // --- NAVEGACIÓN SPA ---
 const showSection = (sectionId) => {
@@ -139,6 +140,8 @@ window.onload = () => {
         const out = await fetch(`${API_URL}/jobs/${job_id}/outputs`);
         const results = await out.json();
 
+        currentResults = results;
+
         console.log("Salida bro:", results);
         // Extraemos referencias de los objetos principales
         const meta = results.protein_metadata;
@@ -182,7 +185,7 @@ window.onload = () => {
 
         document.getElementById('btn-download-pdb').onclick = () => {
             if (!currentPdbData) return addLog("SISTEMA: No hay PDB disponible.");
-            downloadFile(currentPdbData, `localfold_${currentPdbId}.pdb`);
+            downloadFile(currentPdbData, `${currentPdbId}.pdb`);
         };
 
         document.getElementById('btn-download-logs').onclick = () => {
@@ -239,17 +242,21 @@ window.onload = () => {
 
             switch (scheme) {
                 case 'plddt':
+                    const residue = currentResults.structural_data.confidence.plddt_per_residue;
                     styleSpec = {
                         cartoon: {
                             colorfunc: (atom) => {
-                                if (atom.b >= 90) return "#FF7D45";
-                                if (atom.b >= 70) return "#FFD321";
-                                if (atom.b >= 50) return "#65CBFF";
-                                return "#0053D6";
+                                // Comparamos uno por uno los atomos para saber el plddt correspondiente
+                                const confidence = residue[String(atom.resi)] || residue[atom.resi] || 0; 
+                                
+                                if (confidence >= 90) return "#0053D6";
+                                if (confidence >= 70) return "#65CBFF";
+                                if (confidence >= 50) return "#FFD321";
+                                return "#FF7D45";
                             }
                         }
                     };
-                    break;
+                break; 
                 case 'amino':
                     // Colores por tipo de aminoácido
                     styleSpec = { sphere: { colorscheme: 'amino' } };
@@ -270,6 +277,7 @@ window.onload = () => {
             
             // Opcional: Ocultar el menú tras seleccionar un color
             colorMenu.classList.remove('show');
+            updateLegendUI(scheme)
         };
     });
 
@@ -329,20 +337,38 @@ function renderProtein(pdbId, pdbData) {
 
 // Función auxiliar para no repetir código de estilo inicial
 function applyDefaultStyle() {
+    // 1. Verificación de seguridad
+    if (!currentResults || !currentResults.structural_data) return;
+
+    // 2. Extraemos los scores (el JSON que subiste usa .plddt directamente)
+    const scores = currentResults.structural_data.confidence.plddt || 
+                   currentResults.structural_data.confidence.plddt_per_residue;
+
     viewer.setStyle({}, {
         cartoon: {
-            colorscheme: {
-                prop: 'b',           // Usamos la propiedad B-factor (pLDDT)
-                gradient: 'rwb',     // Gradiente Rojo -> Blanco -> Azul
-                min: 90,             // Ajusta donde empieza el rojo fuerte (ej. pLDDT 30)
-                max: 50             // El azul más fuerte será en pLDDT 100
-            },
-            thickness: 0.6,
+            colorfunc: (atom) => {
+                // Detectamos si es array (usar índice - 1) o si es objeto (usar clave directa)
+                const confidence = Array.isArray(scores) 
+                    ? scores[atom.resi - 1] 
+                    : (scores[atom.resi] || scores[String(atom.resi)] || 0);
+                                
+                if (confidence >= 90) return "#0053D6"; // Azul (Muy alta)
+                if (confidence >= 70) return "#65CBFF"; // Celeste (Alta)
+                if (confidence >= 50) return "#FFD321"; // Amarillo (Baja)
+                return "#FF7D45";                // Naranja (Muy baja)
+            }
         },
     });
+
+    // 3. Activamos la leyenda en modo pLDDT por defecto
+    if (typeof updateLegendUI === 'function') {
+        updateLegendUI('plddt');
+    }
+
+    // 4. Renderizado final
     viewer.zoomTo();
     viewer.render();
-    viewer.spin(true); // Activa el giro automático
+    viewer.spin(true);
 
     const sidePanels = document.querySelectorAll('#config, .left-box, #heat-map, #log-monitor, #history');
 
@@ -504,4 +530,65 @@ function renderPAEHeatmap(paeMatrix) {
     };
 
     Plotly.newPlot('pae-plot', data, layout, { responsive: true, displayModeBar: false });
+}
+
+// 1. Definimos los diccionarios de la leyenda
+const legendData = {
+    plddt: {
+        title: "Confianza (pLDDT)",
+        items: [
+            { color: "#0053D6", label: "Muy alta (>90)" },
+            { color: "#65CBFF", label: "Alta (70-90)" },
+            { color: "#FFD321", label: "Baja (50-70)" },
+            { color: "#FF7D45", label: "Muy baja (<50)" }
+        ]
+    },
+    ss: {
+        title: "Estructura Secundaria",
+        items: [
+            { color: "#ff0000", label: "Hélice Alfa" },
+            { color: "#ffff00", label: "Hoja Beta" },
+            { color: "#00ff00", label: "Lazo / Giro" }
+        ]
+    },
+    amino: {
+        title: "Propiedades Aminoácidos",
+        items: [
+            { color: "#BEA06E", label: "Hidrofóbico" },
+            { color: "#8282D2", label: "Positivo" },
+            { color: "#E60A0A", label: "Negativo" },
+            { color: "#00D1D1", label: "Polar" }
+        ]
+    },
+    element: {
+        title: "Elementos Químicos",
+        items: [
+            { color: "#909090", label: "Carbono (C)" },
+            { color: "#3050F8", label: "Nitrógeno (N)" },
+            { color: "#FF0D0D", label: "Oxígeno (O)" },
+            { color: "#FFFF30", label: "Azufre (S)" }
+        ]
+    }
+};
+
+// 2. Función para pintar la leyenda
+function updateLegendUI(scheme) {
+    const container = document.getElementById('protein-legend');
+    const data = legendData[scheme];
+    
+    if (!data) {
+        container.style.display = 'none';
+        return;
+    }
+
+    container.style.display = 'block';
+    let html = `<strong>${data.title}</strong><br><br>`;
+    data.items.forEach(item => {
+        html += `
+            <div class="legend-item">
+                <div class="legend-color" style="background:${item.color}"></div>
+                <span>${item.label}</span>
+            </div>`;
+    });
+    container.innerHTML = html;
 }
