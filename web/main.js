@@ -126,53 +126,94 @@ window.onload = () => {
             reader.readAsText(file);
         }
     });
+
+    // --- LÓGICA DEL MENÚ DE COLORES ---
+    const btnPalette = document.getElementById('btn-palette');
+    const colorMenu = document.getElementById('color-menu');
+
+    // Desplegar/ocultar el menú
+    btnPalette.onclick = () => {
+        colorMenu.classList.toggle('show');
+    };
+
+    // Aplicar estilos a la proteína según el botón pulsado
+    document.querySelectorAll('.color-btn').forEach(btn => {
+        btn.onclick = (e) => {
+            if (!viewer) return; // Si no hay visor cargado, no hace nada
+            
+            const scheme = e.target.getAttribute('data-scheme');
+            let styleSpec = {};
+
+            switch (scheme) {
+                case 'plddt':
+                    // Tu esquema original basado en AlphaFold/LocalFold
+                    styleSpec = {
+                        cartoon: {
+                            colorfunc: (atom) => {
+                                if (atom.b >= 90) return "#0053D6";
+                                if (atom.b >= 70) return "#65CBFF";
+                                if (atom.b >= 50) return "#FFD321";
+                                return "#FF7D45";
+                            }
+                        }
+                    };
+                    break;
+                case 'amino':
+                    // Colores por tipo de aminoácido
+                    styleSpec = { sphere: { colorscheme: 'amino' } };
+                    break;
+                case 'ss':
+                    // Colores por estructura secundaria (Hélices, láminas, etc.)
+                    styleSpec = { cartoon: { colorscheme: 'ssPyMol' } };
+                    break;
+                case 'element':
+                    // Colores estándar (átomos)
+                    styleSpec = { stick: { colorscheme: 'Jmol' } };
+                    break;
+            }
+
+            // Aplicar el nuevo estilo y renderizar
+            viewer.setStyle({}, styleSpec);
+            viewer.render();
+            
+            // Opcional: Ocultar el menú tras seleccionar un color
+            colorMenu.classList.remove('show');
+        };
+    });
 };
 
 function renderProtein(pdbId, pdbData) {
     if (!viewer) return;
 
-    // Si no existe en el catálogo
-    if(!pdbId){
-        viewer.addModel(pdbData, "pdb");
+    viewer.clear(); // Limpiar siempre antes de cargar nueva
 
-        viewer.setStyle({}, {
+    if(!pdbId){
+        // Caso: Datos crudos (LocalFold)
+        viewer.addModel(pdbData, "pdb");
+        applyDefaultStyle();
+    } else {
+        // Caso: Descarga de PDB
+        $3Dmol.download(`pdb:${pdbId}`, viewer, {}, function() {
+            applyDefaultStyle();
+        });
+    }
+}
+
+// Función auxiliar para no repetir código de estilo inicial
+function applyDefaultStyle() {
+    viewer.setStyle({}, {
         cartoon: {
-            // Valores de colores pLDDT
             colorfunc: (atom) => {
                 if (atom.b >= 90) return "#0053D6";
-                if (atom.b >= 70) return "#65CBFF"; 
-                if (atom.b >= 50) return "#FFD321"; 
+                if (atom.b >= 70) return "#65CBFF";
+                if (atom.b >= 50) return "#FFD321";
                 return "#FF7D45";                
             }
         }
     });
-
-        viewer.zoomTo();
-        viewer.render();
-
-
-    }else{
-        // Limpiamos antes de la nueva descarga
-        viewer.clear();
-
-        // 3Dmol.download es asíncrono y gestiona la petición por ti
-        $3Dmol.download(`pdb:${pdbId}`, viewer, {}, function() {
-            viewer.setStyle({}, { 
-                cartoon: {
-                    // Valores de colores pLDDT
-                    colorfunc: (atom) => {
-                        if (atom.b >= 90) return "#0053D6"; 
-                        if (atom.b >= 70) return "#65CBFF"; 
-                        if (atom.b >= 50) return "#FFD321";
-                        return "#FF7D45";              
-                    }
-                }
-            });
-            viewer.zoomTo();
-            viewer.render();
-            console.log("Proteína cargada vía download:", pdbId);
-        });
-    }
+    viewer.zoomTo();
+    viewer.render();
+    viewer.spin(true); // Activa el giro automático
 }
 
 // --- LÓGICA DRAG & DROP ---

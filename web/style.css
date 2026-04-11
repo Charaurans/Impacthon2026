@@ -202,3 +202,74 @@ button:active {
     color: #00ffcc;
     font-weight: bold;
 }
+
+/* --- CONTROLES DE COLOR 3D --- */
+#color-controls {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    z-index: 100;
+    display: flex;
+    flex-direction: column-reverse; /* Hace que el menú aparezca "hacia arriba" del botón */
+    align-items: flex-start;
+    gap: 15px;
+}
+
+#btn-palette {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin: 0;
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+}
+
+#btn-palette:hover {
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+}
+
+#color-menu {
+    display: flex;
+    flex-direction: row; /* Botones en horizontal */
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    padding: 10px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    
+    /* Animación de oculto/visible */
+    opacity: 0;
+    transform: translateY(10px);
+    pointer-events: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#color-menu.show {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.color-btn {
+    margin: 0;
+    width: auto;
+    padding: 8px 12px;
+    font-size: 12px;
+    border-radius: 6px;
+    background: rgba(15, 23, 42, 0.6);
+}
+
+.color-btn:hover {
+    background: #00ffcc;
+    color: #0f172a;
+    box-shadow: 0 0 10px rgba(0, 255, 204, 0.4);
+}
