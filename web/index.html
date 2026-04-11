@@ -1,59 +1,121 @@
 <!DOCTYPE html>
 <html lang="es">
+
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Impacthon2026</title>
         <link rel="stylesheet" href="style.css">
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/3Dmol/2.0.4/3Dmol-min.js"></script>
+        <script src="main.js"></script>
     </head>
+
     <body>
+
+        <!-- Vista inicial para iniciar sesión -->
         <section id="sec-login" class="spa-section active">
+            <h1> Insertar Titulo </h1>
+            <h2> Insertar Slogan </h2>
             <div class="login-box">
-                <h2>Inicio de Sesión</h2>
-                <input type="text" id="username" placeholder="Usuario CESGA">
-                <input type="password" id="password" placeholder="Contraseña">
+                <h3> Inicio de Sesión </h3>
+
+                <input type="text" id="username" placeholder="Inserte el nombre de usuario">
+                <input type="password" id="password" placeholder="Inserte la contraseña">
                 <button id="button-login">Iniciar Sesión</button>
                 <button id="button-guest">Entrar como invitado</button>
             </div>
         </section>
 
-        <section id="sec-dashboard" class="spa-section">
-            <div id="controls">
-                <h3>LocalFold MVP</h3>
-                <div id="drop-zone">
-                    <textarea id="fasta" placeholder="Pega tu secuencia FASTA aquí..."></textarea>
-                    <div id="drop-overlay">Suelte el archivo FASTA aquí</div>
+        <section id="sec-charging" class="spa-section">
+            <div id="loading-overlay" style="display: none;">
+                <div class="loader-content">
+                    <div class="protein-animation">
+                        <div class="amino-acid"></div>
+                        <div class="amino-acid"></div>
+                        <div class="amino-acid"></div>
+                    </div>
+                    <h2 id="loading-text">Cargando...</h2>
+                    <p id="loading-subtext"> Estado: STARTING </p>
                 </div>
-                <button id="button-run">Predecir Estructura</button>
-                <div id="status">Listo para procesar</div>
-            </div>
-
-            <div id="viewer"></div>
-
-            <div id="color-controls">
-                <div id="color-menu" class="hidden">
-                    <button class="color-btn" data-scheme="plddt" title="Confianza pLDDT">Confianza(pLDDT)</button>
-                    <button class="color-btn" data-scheme="amino" title="Por Aminoácido">Aminoácidos</button>
-                    <button class="color-btn" data-scheme="ss" title="Ver plegamiento y forma">Global(ssPyMol)</button>
-                    <button class="color-btn" data-scheme="element" title="Enlaces químicos">Atómico(Jmol)</button>
-                </div>
-                <button id="btn-palette" title="Cambiar esquema de color">🎨</button>
             </div>
         </section>
 
-        <div id="loading-overlay" style="display: none;">
-            <div class="loader-content">
-                <div class="protein-animation">
-                    <div class="amino-acid"></div>
-                    <div class="amino-acid"></div>
-                    <div class="amino-acid"></div>
-                </div>
-                <h2 id="loading-text">Cargando...</h2>
-                <p id="loading-subtext"> Estado: STARTING </p>
-            </div>
-        </div>
+        <!-- Vista principal -->
+        <section id="sec-dashboard" class="spa-section">
+            <div id="viewer"></div>
 
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/3Dmol/2.0.4/3Dmol-min.js"></script>
-        <script src="main.js"></script>
+            <div class="side-column">
+                <!-- Panel superior izquierdo -->
+                <div id="config">
+                    <div class="presets">
+                        <label>Configuración:</label>
+                        <select id="preset-select">
+                            <option value="fast">Vista rápida (Átomos C-α)</option>
+                            <option value="standard" selected>Estándar (AlphaFold2)</option>
+                            <option value="high">Alta precisión (Relax AMBER)</option>
+                        </select>
+                    </div>
+
+                    <div id="color-controls"> 
+                        <div id="color-menu" class="hidden">
+                            <button class="color-btn" data-scheme="plddt" title="Confianza pLDDT">Confianza(pLDDT)</button>
+                            <button class="color-btn" data-scheme="amino" title="Por Aminoácido">Aminoácidos</button>
+                            <button class="color-btn" data-scheme="ss" title="Ver plegamiento y forma">Global(ssPyMol)</button>
+                            <button class="color-btn" data-scheme="element" title="Enlaces químicos">Atómico(Jmol)</button>
+                        </div>
+                        <button id="btn-palette" title="Cambiar esquema de color">🎨</button>
+                    </div>
+                    
+            
+                </div>
+
+                <!-- Panel intermedio izquierdo-->
+                <div class="left-box">
+                    <div id="drop-zone">
+                        <textarea id="fasta" placeholder="Pega tu secuencia FASTA aquí..."></textarea>
+                        <p id="drop-overlay">Suelte el archivo FASTA aquí</p>
+                    </div>
+                    <button id="button-run">Predecir Estructura</button>
+                    <div id="status">Listo para procesar</div>
+                </div>
+
+
+                <!-- Panel inferior izquierdo -->
+                <div id="heat-map">
+                </div>
+            </div>
+
+            <div class="side-column">
+                <!-- Panel superior derecho -->
+                 <div style="height: 60px;"></div>
+
+                <!-- Panel intermedio derecho -->
+                <div id="stats">
+
+                    <div id="result-panel" style="display:none; margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
+                        <h4>Análisis de Confianza</h4>
+                        <p>pLDDT Medio: <strong id="avg-plddt">--</strong>%</p>
+                        
+                        <div class="pae-box">
+                            <p>Matriz PAE (Error Alineado):</p>
+                            <img id="pae-image" src="" alt="Heatmap PAE" style="width:100%; border-radius:5px; margin-bottom:10px; border: 1px solid #334155;">
+                        </div>
+
+                        <div class="download-group">
+                            <button id="btn-download-pdb" class="btn-sm">💾 PDB</button>
+                            <button id="btn-download-logs" class="btn-sm">📄 Logs</button>
+                        </div>
+                        <button id="btn-view-logs" class="btn-sm">👁 Ver Logs</button>
+                    </div>
+                </div>
+
+                <!-- Panel inferior derecho -->
+                <div id="log-monitor">
+                    <div id="log-content"></div>
+                </div>
+            </div>
+
+        </section>
+
     </body>
 </html>
