@@ -55,11 +55,15 @@ window.onload = () => {
     btnRun.onclick = async () => {
         const fasta = fastaTextArea.value.trim();
         const status = document.getElementById('status');
+        const overlay = document.getElementById('loading-overlay');
+        const loadtext = document.getElementById('loading-subtext');
 
         if (!fasta.startsWith('>')) {
             status.innerText = "Error: El FASTA debe empezar por '>'";
             return;
         }
+
+        overlay.style.display = 'flex';
 
         try {
             status.innerText = "Enviando al CESGA...";
@@ -81,6 +85,7 @@ window.onload = () => {
                 const data = await poll.json();
 
                 status.innerText = `Estado Actual: ${data.status}`;
+                loadtext.innerText = `Estado: ${data.status.toUpperCase()}`;
                 
                 if (data.status === 'COMPLETED'){
                     jobReady = true;
@@ -101,6 +106,8 @@ window.onload = () => {
         } catch (err) {
             status.innerText = "Error: " + err.message;
             console.error(err);
+        }finally{
+            overlay.style.display = 'none';
         }
     };
 
