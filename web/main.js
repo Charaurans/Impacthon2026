@@ -2,7 +2,11 @@
 
 const API_URL = "https://api-mock-cesga.onrender.com";
 let viewer;
+let viewerContainer;
 let fullLog ="";
+let currentPdbData = null;
+let currentPdbId = "sintetica";
+let proteinHistory = [];
 
 // --- NAVEGACIÓN SPA ---
 const showSection = (sectionId) => {
@@ -18,11 +22,13 @@ const showSection = (sectionId) => {
     if (sectionId === 'sec-dashboard') {
         if (!viewer) {
             viewer = $3Dmol.createViewer(document.getElementById('viewer'), { backgroundColor: 'transparent' });
+            viewerContainer =  document.getElementById('viewer');
         }
         viewer.resize();
     }
 };
 
+// Función principal
 window.onload = () => {
     const btnLogin = document.getElementById('button-login');
     const btnGuest = document.getElementById('button-guest');
@@ -147,53 +153,30 @@ window.onload = () => {
 
             // DESCARGAR PDB
             document.getElementById('btn-download-pdb').onclick = () => {
-                const blob = new Blob([results.structural_data.pdb_file], { type: 'text/plain' });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `localfold_${results.protein_metadata?.pdb_id || 'sintetica'}.pdb`;
-                a.click();
-            };
+                if (!currentPdbData) return addLog("SISTEMA: No hay PDB disponible.");
+                    downloadFile(currentPdbData, `localfold_${currentPdbId}.pdb`);
+                };
 
             // DESCARGAR LOGS
             document.getElementById('btn-download-logs').onclick = () => {
-                const logContent = document.getElementById('log-content');
-                const btn = document.getElementById('btn-download-logs');
-
-                if (!fullLog || fullLog.trim() === "") {
-                    const originalText = btn.innerText;
-                    btn.innerText = "⚠️ Sin datos";
-                    btn.style.backgroundColor = "#ef4444"; // Color rojo suave
-                    
-                    setTimeout(() => {
-                        btn.innerText = originalText;
-                        btn.style.backgroundColor = ""; // Vuelve al estilo del CSS
-                    }, 2000);
-                    return;
-                }
-                
-                // Encabezado del log
-                const fileContent = `HISTORIAL DE EJECUCIÓN - PORTAL LOCALFOLD (CESGA)\n` +
-                        `================================================\n` +
-                        `Fecha de descarga: ${new Date().toLocaleString()}\n\n` +
-                        fullLog;
-                
-
-                // Crear el archivo y descargarlo
-                const blob = new Blob([fileContent], { type: 'text/plain' });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `logs_job_${new Date().getTime()}.txt`;
-                a.click();
-
-                // Limpieza
-                window.URL.revokeObjectURL(url);
-            };
+                if (!fullLog.trim()) return addLog("SISTEMA: Historial vacío.");
+                    downloadFile(`LOGS DE SESIÓN\n==========\n${fullLog}`, `logs_${Date.now()}.txt`);
+                };
 
             renderProtein(id, file);
 
+            currentPdbData = file;
+            currentPdbId = id;
+
+            setTimeout(() => {
+                if (viewer) {
+                    const snapshot = viewer.pngURI();
+                    addToHistory(currentPdbId, currentPdbData, snapshot);
+                }
+            }, 1000); // 1 segundo de margen para que cargue el 3D
+
         } catch (err) {
+            addLog("Ha ocurrido un error de tipo: " + err.message);
             status.innerText = "Error: " + err.message;
             console.error(err);
         }finally{
@@ -296,8 +279,11 @@ window.onload = () => {
             reader.readAsText(file);
         }
     });
+
+    updateHistoryUI();
 };
 
+// Función para renderizar una proteina
 function renderProtein(pdbId, pdbData) {
     if (!viewer) return;
 
@@ -331,7 +317,6 @@ function applyDefaultStyle() {
     viewer.render();
     viewer.spin(true); // Activa el giro automático
 
-    const viewerContainer = document.getElementById('viewer');
     const sidePanels = document.querySelectorAll('#config, .left-box, #heat-map, #stats, #log-monitor');
 
     // Función para esconder dashboard
@@ -360,15 +345,7 @@ function applyDefaultStyle() {
     viewer.spin(true);
 }
 
-const viewerContainer = document.getElementById('viewer');
-
-if (viewerContainer != null){ 
-    // Cuando el ratón baja (clic) o empieza a mover, detenemos el giro
-    viewerContainer.onmousedown = () => {
-        viewer.spin(false);
-    };
-}
-
+// Función para almacenar los logs
 const addLog = (message) => {
     const logContent = document.getElementById('log-content');
     const timestamp = new Date().toLocaleTimeString();
@@ -384,4 +361,43 @@ const addLog = (message) => {
 
     // Auto-scroll hacia abajo
     document.getElementById('log-monitor').scrollTop = document.getElementById('log-monitor').scrollHeight;
+};
+
+// Función auxiliar para actualizar las imagenes de los recientes
+const updateHistoryUI = () => {
+    const container = document.getElementById('history-container');
+    if (!container) return;
+    
+    container.innerHTML = proteinHistory.map((item, index) => `
+        <div class="history-item" onclick="loadFromHistory(${index})">
+            <img src="${item.img}" title="${item.name}">
+        </div>
+    `).join('') + '<div class="history-item empty">Vacío</div>'.repeat(Math.max(0, 3 - proteinHistory.length));
+};
+
+// Función auxiliar para añadir una proteína al historial
+const addToHistory = (name, pdb, img) => {
+    proteinHistory.unshift({ name, pdb, img });
+    if (proteinHistory.length > 3) proteinHistory.pop();
+    updateHistoryUI();
+};
+
+// Función auxiliar para cargar el historial
+const loadFromHistory = (index) => {
+    const item = proteinHistory[index];
+    currentPdbData = item.pdb;
+    currentPdbId = item.name;
+    renderProtein(item.name, item.pdb);
+    addLog(`Restaurada desde historial: ${item.name}`);
+};
+
+// Función genérica para descargar archivos
+const downloadFile = (content, filename) => {
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(url);
 };
