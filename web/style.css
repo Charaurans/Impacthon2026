@@ -183,3 +183,22 @@ button:active {
 #loading-text { color: white; margin: 0; }
 #job-status-detail { color: #38bdf8; font-family: monospace; }
 
+/* Estado normal del drop-zone */
+#drop-zone {
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+    border-radius: 10px;
+}
+
+/* Estado cuando el usuario tiene el archivo encima */
+#drop-zone.dragging {
+    background: rgba(0, 255, 204, 0.15); /* Un toque verde cian */
+    border: 2px dashed #00ffcc;
+    transform: scale(1.02); /* Se agranda un poquito */
+}
+
+/* Opcional: que el texto cambie de color al arrastrar */
+#drop-zone.dragging #drop-overlay {
+    color: #00ffcc;
+    font-weight: bold;
+}

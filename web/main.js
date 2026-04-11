@@ -112,11 +112,6 @@ window.onload = () => {
         }
     };
 
-    // --- LÓGICA DRAG & DROP ---
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(name => {
-        dropZone.addEventListener(name, e => { e.preventDefault(); e.stopPropagation(); });
-    });
-
     dropZone.addEventListener('drop', e => {
         const file = e.dataTransfer.files[0];
         if (file) {
@@ -142,12 +137,12 @@ function renderProtein(pdbId, pdbData) {
 
         viewer.setStyle({}, {
         cartoon: {
+            // Valores de colores pLDDT
             colorfunc: (atom) => {
-                // El valor de confianza pLDDT viene en el campo 'b' (B-factor) del PDB
-                if (atom.b >= 90) return "#0053D6"; // Azul: Muy alta [cite: 38]
-                if (atom.b >= 70) return "#65CBFF"; // Celeste: Alta [cite: 38]
-                if (atom.b >= 50) return "#FFD321"; // Amarillo: Media [cite: 38]
-                return "#FF7D45";                // Naranja: Baja (región desordenada) [cite: 38]
+                if (atom.b >= 90) return "#0053D6";
+                if (atom.b >= 70) return "#65CBFF"; 
+                if (atom.b >= 50) return "#FFD321"; 
+                return "#FF7D45";                
             }
         }
     });
@@ -162,10 +157,55 @@ function renderProtein(pdbId, pdbData) {
 
         // 3Dmol.download es asíncrono y gestiona la petición por ti
         $3Dmol.download(`pdb:${pdbId}`, viewer, {}, function() {
-            viewer.setStyle({}, { cartoon: { color: 'spectrum' } });
+            viewer.setStyle({}, { 
+                cartoon: {
+                    // Valores de colores pLDDT
+                    colorfunc: (atom) => {
+                        if (atom.b >= 90) return "#0053D6"; 
+                        if (atom.b >= 70) return "#65CBFF"; 
+                        if (atom.b >= 50) return "#FFD321";
+                        return "#FF7D45";              
+                    }
+                }
+            });
             viewer.zoomTo();
             viewer.render();
             console.log("Proteína cargada vía download:", pdbId);
         });
     }
 }
+
+// --- LÓGICA DRAG & DROP ---
+const dropZone = document.getElementById('drop-zone');
+
+['dragenter', 'dragover'].forEach(name => {
+    dropZone.addEventListener(name, e => { 
+        e.preventDefault(); 
+        e.stopPropagation();
+        dropZone.classList.add('dragging'); // Añade clase al entrar
+    });
+});
+
+['dragleave', 'drop'].forEach(name => {
+    dropZone.addEventListener(name, e => { 
+        e.preventDefault(); 
+        e.stopPropagation();
+        dropZone.classList.remove('dragging'); // Quita clase al salir o soltar
+    });
+});
+
+// El evento 'drop' se mantiene igual, pero ahora limpia la clase al final
+dropZone.addEventListener('drop', e => {
+    const file = e.dataTransfer.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const content = event.target.result;
+            if (content.trim().startsWith('>')) {
+                document.getElementById('fasta').value = content.trim();
+                document.getElementById('status').innerText = `Archivo cargado: ${file.name}`;
+            }
+        };
+        reader.readAsText(file);
+    }
+});
