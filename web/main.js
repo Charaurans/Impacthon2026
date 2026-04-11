@@ -99,9 +99,10 @@ window.onload = () => {
             status.innerText = "Descargando estructura PDB...";
             const out = await fetch(`${API_URL}/jobs/${job_id}/outputs`);
             const results = await out.json();
+            const id = results.protein_metadata ? results.protein_metadata.pdb_id : null;
+            const file = results.structural_data.pdb_file;
 
-            status.innerText = "¡Proteína cargada! Su id es el siguiente : " + results.protein_metadata.pdb_id;
-            renderProtein(results.protein_metadata.pdb_id);
+            renderProtein(id, file);
 
         } catch (err) {
             status.innerText = "Error: " + err.message;
@@ -132,17 +133,39 @@ window.onload = () => {
     });
 };
 
-function renderProtein(pdbId) {
+function renderProtein(pdbId, pdbData) {
     if (!viewer) return;
 
-    // Limpiamos antes de la nueva descarga
-    viewer.clear();
+    // Si no existe en el catálogo
+    if(!pdbId){
+        viewer.addModel(pdbData, "pdb");
 
-    // 3Dmol.download es asíncrono y gestiona la petición por ti
-    $3Dmol.download(`pdb:${pdbId}`, viewer, {}, function() {
-        viewer.setStyle({}, { cartoon: { color: 'spectrum' } });
+        viewer.setStyle({}, {
+        cartoon: {
+            colorfunc: (atom) => {
+                // El valor de confianza pLDDT viene en el campo 'b' (B-factor) del PDB
+                if (atom.b >= 90) return "#0053D6"; // Azul: Muy alta [cite: 38]
+                if (atom.b >= 70) return "#65CBFF"; // Celeste: Alta [cite: 38]
+                if (atom.b >= 50) return "#FFD321"; // Amarillo: Media [cite: 38]
+                return "#FF7D45";                // Naranja: Baja (región desordenada) [cite: 38]
+            }
+        }
+    });
+
         viewer.zoomTo();
         viewer.render();
-        console.log("Proteína cargada vía download:", pdbId);
-    });
+
+
+    }else{
+        // Limpiamos antes de la nueva descarga
+        viewer.clear();
+
+        // 3Dmol.download es asíncrono y gestiona la petición por ti
+        $3Dmol.download(`pdb:${pdbId}`, viewer, {}, function() {
+            viewer.setStyle({}, { cartoon: { color: 'spectrum' } });
+            viewer.zoomTo();
+            viewer.render();
+            console.log("Proteína cargada vía download:", pdbId);
+        });
+    }
 }
