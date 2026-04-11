@@ -1,22 +1,37 @@
-<!--pagina principal-->
 <!DOCTYPE html>
 <html lang="es">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title> Impacthon2026 </title>
+        <title>Impacthon2026</title>
         <link rel="stylesheet" href="style.css">
     </head>
     <body>
-    <div id="controls">
-        <textarea id="fasta" placeholder="Pega tu secuencia FASTA aquí..."></textarea>
-        <button id="btn-run">Predecir Estructura</button>
-        <div id="status">Listo para procesar</div>
-    </div>
+        <section id="sec-login" class="spa-section active">
+            <div class="login-box">
+                <h2>Inicio de Sesión</h2>
+                <input type="text" id="username" placeholder="Usuario CESGA">
+                <input type="password" id="password" placeholder="Contraseña">
+                <button id="button-login">Iniciar Sesión</button>
+                <button id="button-guest">Entrar como invitado</button>
+            </div>
+        </section>
 
-    <div id="viewer"></div>
+        <section id="sec-dashboard" class="spa-section">
+            <div id="controls">
+                <h3>LocalFold MVP</h3>
+                <div id="drop-zone">
+                    <textarea id="fasta" placeholder="Pega tu secuencia FASTA aquí..."></textarea>
+                    <div id="drop-overlay">🚀 Suelta el archivo FASTA aquí</div>
+                </div>
+                <button id="button-run">Predecir Estructura</button>
+                <div id="status">Listo para procesar</div>
+            </div>
+            
+            <div id="viewer"></div>
+        </section>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/3Dmol/2.0.4/3Dmol-min.js"></script>
-    <script src="main.js"></script>
-</body>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/3Dmol/2.0.4/3Dmol-min.js"></script>
+        <script src="main.js"></script>
+    </body>
 </html>
