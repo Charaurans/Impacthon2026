@@ -60,129 +60,146 @@ window.onload = () => {
 
     // Manejo de Envío de Jobs
     btnRun.onclick = async () => {
-        const fasta = fastaTextArea.value.trim();
-        const overlay = document.getElementById('loading-overlay');
-        const loadtext = document.getElementById('loading-subtext');
-        const preset = document.getElementById('preset-select').value;
-        let config = {};
+    const fasta = fastaTextArea.value.trim();
+    const overlay = document.getElementById('loading-overlay');
+    const loadtext = document.getElementById('loading-subtext');
+    const preset = document.getElementById('preset-select').value;
+    let config = {};
 
+    // 1. Configuración de Presets
+    switch (preset) {
+        case 'fast':
+            config = { cpus: 4, gpus: 1, memory_gb: 16, max_runtime_seconds: 1800 };
+            break;
+        case 'high':
+            config = { cpus: 16, gpus: 2, memory_gb: 64, max_runtime_seconds: 7200 };
+            break;
+        default:
+            config = { cpus: 8, gpus: 1, memory_gb: 32, max_runtime_seconds: 3600 };
+    }
 
-        switch (preset) {
-            case 'fast':
-                config = { cpus: 4, gpus: 1, memory_gb: 16, max_runtime_seconds: 1800 };
-                break;
-            case 'high':
-                config = { cpus: 16, gpus: 2, memory_gb: 64, max_runtime_seconds: 7200 };
-                break;
-            default:
-                config = { cpus: 8, gpus: 1, memory_gb: 32, max_runtime_seconds: 3600 };
+    overlay.style.display = 'flex';
+
+    try {
+        addLog(`Configurando renderizado con preset: ${preset.toUpperCase()}`);
+
+        // 2. Envío del Job
+        const requestBody = {
+            "fasta_filename": "protein_sequence.fasta",
+            "fasta_sequence": fasta,
+            "cpus": config.cpus,
+            "gpus": config.gpus,
+            "memory_gb": config.memory_gb,
+            "max_runtime_seconds": config.max_runtime_seconds
+        };
+
+        const res = await fetch(`${API_URL}/jobs/submit`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody) 
+        });
+
+        const { job_id } = await res.json();
+
+        if (job_id === undefined) {
+            addLog("Error: El servidor no devolvió un ID de Job. Revisa el FASTA.");
+            return;
         }
 
-        overlay.style.display = 'flex';
+        addLog(`Comienza el job con ID: ${job_id}`);
 
-        try {
-            addLog(`Configurando renderizado con preset: ${preset.toUpperCase()}`);
+        // 3. Polling de Estado
+        let jobReady = false;
+        let lastStatus = "";
 
-            const requestBody = {
-                "fasta_filename": "ubiquitin.fasta",
-                "fasta_sequence": fasta,
-                "cpus": config.cpus,
-                "gpus": config.gpus,
-                "memory_gb": config.memory_gb,
-                "max_runtime_seconds": config.max_runtime_seconds
-            };
-            const res = await fetch(`${API_URL}/jobs/submit`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestBody) 
-            });
-
-            const { job_id } = await res.json();
-
-            if(job_id == undefined){
-                addLog("Hay un error en el FASTA");
-                return
+        while (!jobReady) {
+            const poll = await fetch(`${API_URL}/jobs/${job_id}/status`);
+            const data = await poll.json();
+            const currentStatus = data.status;
+            
+            if (currentStatus !== lastStatus) {
+                addLog("Estado del Job: " + currentStatus);
+                lastStatus = currentStatus;
             }
 
-            addLog(`Comienza el job con ID: ${job_id}`);
-
-            let jobReady = false;
-            let lastStatus = "";
-            while (!jobReady) {
-                const poll = await fetch(`${API_URL}/jobs/${job_id}/status`);
-                const data = await poll.json();
-                const currentStatus = data.status;
-                
-                if (currentStatus !== lastStatus) {
-                    const color = currentStatus === 'COMPLETED' ? '#4ade80' : '#ffea00';
-                    addLog("Estado del Job: " + currentStatus);
-                    
-                    lastStatus = currentStatus; // Actualizamos el último estado rastreado
-                }
-
-                loadtext.innerText = `Estado: ${data.status.toUpperCase()}`;
-                
-                if (data.status === 'COMPLETED'){
-                    jobReady = true;
-                } else if (data.status === 'FAILED') {
-                    throw new Error("Fallo en el clúster");
-                } else{ 
-                    await new Promise(r => setTimeout(r, 2000));
-                }
+            loadtext.innerText = `Estado: ${currentStatus.toUpperCase()}`;
+            
+            if (currentStatus === 'COMPLETED') {
+                jobReady = true;
+            } else if (currentStatus === 'FAILED') {
+                throw new Error("Fallo en el clúster de computación");
+            } else { 
+                await new Promise(r => setTimeout(r, 2000));
             }
-
-            addLog("El renderizado terminará en breves instantes");
-
-            const out = await fetch(`${API_URL}/jobs/${job_id}/outputs`);
-            const results = await out.json();
-            const id = results.protein_metadata ? results.protein_metadata.pdb_id : null;
-            const file = results.structural_data.pdb_file;
-            const resultPanel = document.getElementById('result-panel');
-            const avgPlddtText = document.getElementById('avg-plddt');
-            const paeImage = document.getElementById('pae-image');
-
-
-            resultPanel.style.display = 'block';
-
-            // Extraer métricas si existen (si no, valores por defecto para sintéticas)
-            const plddtAvg = results.structural_data.plddt_avg || "65.4";
-            const paeUrl = results.structural_data.pae_image_url || "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a2/Heatmap.png/300px-Heatmap.png";
-
-            avgPlddtText.innerText = plddtAvg;
-            paeImage.src = paeUrl;
-
-            // DESCARGAR PDB
-            document.getElementById('btn-download-pdb').onclick = () => {
-                if (!currentPdbData) return addLog("SISTEMA: No hay PDB disponible.");
-                    downloadFile(currentPdbData, `localfold_${currentPdbId}.pdb`);
-                };
-
-            // DESCARGAR LOGS
-            document.getElementById('btn-download-logs').onclick = () => {
-                if (!fullLog.trim()) return addLog("SISTEMA: Historial vacío.");
-                    downloadFile(`LOGS DE SESIÓN\n==========\n${fullLog}`, `logs_${Date.now()}.txt`);
-                };
-
-            renderProtein(id, file);
-
-            currentPdbData = file;
-            currentPdbId = id;
-
-            setTimeout(() => {
-                if (viewer) {
-                    const snapshot = viewer.pngURI();
-                    addToHistory(currentPdbId, currentPdbData, snapshot);
-                }
-            }, 1000); // 1 segundo de margen para que cargue el 3D
-
-        } catch (err) {
-            addLog("Ha ocurrido un error de tipo: " + err.message);
-            status.innerText = "Error: " + err.message;
-            console.error(err);
-        }finally{
-            overlay.style.display = 'none';
         }
-    };
+
+        addLog("Descargando resultados...");
+
+        // 4. Procesamiento de Resultados (Mapping del JSON)
+        const out = await fetch(`${API_URL}/jobs/${job_id}/outputs`);
+        const results = await out.json();
+
+        // Extraemos referencias de los objetos principales
+        const meta = results.protein_metadata;
+        const structural = results.structural_data;
+        const biological = results.biological_data;
+
+        // Actualizamos UI de métricas
+        const resultPanel = document.getElementById('result-panel');
+        resultPanel.style.display = 'block';
+
+        // Mapeo de datos biológicos
+        document.getElementById('avg-plddt').innerText = meta.plddt_average || "--";
+        if(document.getElementById('peso-mol')) {
+            document.getElementById('peso-mol').innerText = biological.sequence_properties.molecular_weight_kda.toFixed(2);
+        }
+        if(document.getElementById('estabilidad')) {
+            document.getElementById('estabilidad').innerText = biological.stability_status;
+        }
+        if(document.getElementById('solubilidad')) {
+            document.getElementById('solubilidad').innerText = biological.solubility_prediction;
+        }
+
+        // 5. Renderizado de Gráfico de Confianza (pLDDT por residuo)
+        if (structural.confidence && structural.confidence.pae_matrix) {
+            renderPAEHeatmap(structural.confidence.pae_matrix);
+        } else {
+            addLog("Aviso: No se encontraron datos de PAE.");
+        }
+        // 6. Configuración de Descargas
+        currentPdbData = structural.pdb_file;
+        currentPdbId = meta.pdb_id || "sintetica";
+
+        document.getElementById('btn-download-pdb').onclick = () => {
+            if (!currentPdbData) return addLog("SISTEMA: No hay PDB disponible.");
+            downloadFile(currentPdbData, `localfold_${currentPdbId}.pdb`);
+        };
+
+        document.getElementById('btn-download-logs').onclick = () => {
+            if (!fullLog.trim()) return addLog("SISTEMA: Historial vacío.");
+            downloadFile(`LOGS DE SESIÓN\n==========\n${fullLog}`, `logs_${Date.now()}.txt`);
+        };
+
+        // 7. Renderizado 3D
+        renderProtein(currentPdbId, currentPdbData);
+
+        // Guardar en historial después de cargar el 3D
+        setTimeout(() => {
+            if (viewer) {
+                const snapshot = viewer.pngURI();
+                addToHistory(currentPdbId, currentPdbData, snapshot);
+            }
+        }, 1200);
+
+        addLog("Proceso finalizado con éxito.");
+
+    } catch (err) {
+        addLog("Ha ocurrido un error: " + err.message);
+        console.error(err);
+    } finally {
+        overlay.style.display = 'none';
+    }
+};
 
     dropZone.addEventListener('drop', e => {
         const file = e.dataTransfer.files[0];
@@ -305,13 +322,14 @@ function renderProtein(pdbId, pdbData) {
 function applyDefaultStyle() {
     viewer.setStyle({}, {
         cartoon: {
-            colorfunc: (atom) => {
-                if (atom.b >= 90) return "#0053D6";
-                if (atom.b >= 70) return "#65CBFF";
-                if (atom.b >= 50) return "#FFD321";
-                return "#FF7D45";                
-            }
-        }
+            colorscheme: {
+                prop: 'b',           // Usamos la propiedad B-factor (pLDDT)
+                gradient: 'rwb',     // Gradiente Rojo -> Blanco -> Azul
+                min: 90,             // Ajusta donde empieza el rojo fuerte (ej. pLDDT 30)
+                max: 50             // El azul más fuerte será en pLDDT 100
+            },
+            thickness: 0.6,
+        },
     });
     viewer.zoomTo();
     viewer.render();
@@ -401,3 +419,80 @@ const downloadFile = (content, filename) => {
     a.click();
     window.URL.revokeObjectURL(url);
 };
+
+function renderPLDDTChart(plddtArray) {
+    if (!plddtArray || plddtArray.length === 0) return;
+
+    const trace = {
+        x: plddtArray.map((_, i) => i + 1), // Residuo 1, 2, 3...
+        y: plddtArray,
+        type: 'scatter',
+        mode: 'lines',
+        line: { color: '#4ade80', width: 2 },
+        fill: 'tozeroy', // Relleno hasta el eje X para que parezca una montaña
+        fillcolor: 'rgba(74, 222, 128, 0.1)',
+        hovertemplate: 
+            "<b>Residuo %{x}</b><br>" +
+            "Confianza: %{y:.1f}%<br>" +
+            "<extra></extra>"
+    };
+
+    const layout = {
+        margin: { t: 10, r: 10, b: 40, l: 40 },
+        paper_bgcolor: 'transparent',
+        plot_bgcolor: 'transparent',
+        font: { color: '#d1d5db', size: 10 },
+        xaxis: { title: 'Posición del Residuo', gridcolor: '#334155' },
+        yaxis: { title: 'pLDDT', range: [0, 105], gridcolor: '#334155' },
+        shapes: [
+            // Línea de referencia en 70 (Umbral de buena calidad)
+            { type: 'line', x0: 0, x1: plddtArray.length, y0: 70, y1: 70, 
+              line: { color: '#ffea00', width: 1, dash: 'dot' } }
+        ]
+    };
+
+    Plotly.newPlot('plddt-plot', [trace], layout, { responsive: true, displayModeBar: false });
+}
+
+function renderPAEHeatmap(paeMatrix) {
+    if (!paeMatrix || paeMatrix.length === 0) return;
+
+    const data = [{
+        z: paeMatrix,
+        type: 'heatmap',
+        colorscale: [
+            [0, '#0053D6'],   // Azul (0 Å de error - Excelente)
+            [0.2, '#65CBFF'], // Azul claro
+            [0.5, '#f8fafc'], // Blanco (Error medio)
+            [1, '#ffffff']    // Blanco puro (Error alto > 30 Å)
+        ],
+        showscale: true,
+        colorbar: {
+            title: 'Error (Å)',
+            titleside: 'top',
+            thickness: 10,
+            len: 0.5
+        },
+        hovertemplate: 
+            "<b>Relación de Confianza</b><br>" +
+            "Residuo i: %{x}<br>" +
+            "Residuo j: %{y}<br>" +
+            "Error: %{z:.1f} Å<br>" +
+            "<extra>Valores bajos (Azul) indican que la posición relativa es muy fiable.</extra>"
+    }];
+
+    const layout = {
+        margin: { t: 5, r: 5, b: 40, l: 40 },
+        paper_bgcolor: 'transparent',
+        plot_bgcolor: 'transparent',
+        font: { color: '#d1d5db', size: 10 },
+        xaxis: { title: 'Residuo i', gridcolor: '#334155' },
+        yaxis: { 
+            title: 'Residuo j', 
+            gridcolor: '#334155',
+            autorange: 'reversed' // Crucial para leer la matriz correctamente
+        }
+    };
+
+    Plotly.newPlot('pae-plot', data, layout, { responsive: true, displayModeBar: false });
+}

@@ -7,6 +7,7 @@
         <title>Impacthon2026</title>
         <link rel="stylesheet" href="style.css">
         <script src="https://cdnjs.cloudflare.com/ajax/libs/3Dmol/2.0.4/3Dmol-min.js"></script>
+        <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
         <script src="main.js"></script>
     </head>
 
@@ -111,9 +112,19 @@
                 </div>
 
                 <!-- Panel inferior derecho -->
-                 <div class="pae-box">
-                        <p>Matriz PAE (Error Alineado):</p>
-                        <img id="pae-image" src="" alt="Heatmap PAE" style="width:100%; border-radius:5px; margin-bottom:10px; border: 1px solid #334155;">
+
+                <div class="pae-box">
+                    <p>Mapa de Error Relativo (PAE) 
+                        <span class="info-icon" title="Mide la confianza en la posición relativa entre dos partes de la proteína">ℹ️</span>
+                    </p>
+                    <div id="pae-plot" style="width:100%; height:250px;"></div>
+                    
+                    <div class="educational-note">
+                        <small>
+                            🔵 <b>Azul:</b> Distancia entre dominios fiable.<br>
+                            ⚪ <b>Blanco:</b> Distancia incierta (flexibilidad).
+                        </small>
+                    </div>
                 </div>
             </div>
 
