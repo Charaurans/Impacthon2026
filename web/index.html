@@ -80,9 +80,8 @@
 
 
                 <!-- Panel inferior izquierdo -->
-                <div class="pae-box">
-                        <p>Matriz PAE (Error Alineado):</p>
-                        <img id="pae-image" src="" alt="Heatmap PAE" style="width:100%; border-radius:5px; margin-bottom:10px; border: 1px solid #334155;">
+                <div id="log-monitor">
+                    <div id="log-content"></div>
                 </div>
             </div>
 
@@ -100,7 +99,7 @@
                 <!-- Panel intermedio derecho -->
                 <div id="stats">
 
-                    <div id="result-panel" style="display:none; margin-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px;">
+                    <div id="result-panel">
                         <h4>Análisis de Confianza</h4>
                         <p>pLDDT Medio: <strong id="avg-plddt">--</strong>%</p>
 
@@ -112,8 +111,9 @@
                 </div>
 
                 <!-- Panel inferior derecho -->
-                <div id="log-monitor">
-                    <div id="log-content"></div>
+                 <div class="pae-box">
+                        <p>Matriz PAE (Error Alineado):</p>
+                        <img id="pae-image" src="" alt="Heatmap PAE" style="width:100%; border-radius:5px; margin-bottom:10px; border: 1px solid #334155;">
                 </div>
             </div>
 

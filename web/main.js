@@ -317,7 +317,7 @@ function applyDefaultStyle() {
     viewer.render();
     viewer.spin(true); // Activa el giro automático
 
-    const sidePanels = document.querySelectorAll('#config, .left-box, #heat-map, #stats, #log-monitor');
+    const sidePanels = document.querySelectorAll('#config, .left-box, #heat-map, #log-monitor, #history');
 
     // Función para esconder dashboard
     const hideDashboard = () => {
