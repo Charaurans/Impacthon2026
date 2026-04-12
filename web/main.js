@@ -142,7 +142,6 @@ window.onload = () => {
 
         currentResults = results;
 
-        console.log("Salida bro:", results);
         // Extraemos referencias de los objetos principales
         const meta = results.protein_metadata;
         const structural = results.structural_data;
@@ -220,8 +219,18 @@ window.onload = () => {
     // Abrir panel
     btnAiPanel.onclick = () => {
         aiSlidingPanel.classList.add('open');
+        
+        // Verificamos si ya hay resultados cargados del job
+        if (currentResults) {
+            generateProteinSummary(currentResults);
+        } else {
+            // Mensaje por si el usuario pulsa el botón antes de renderizar una proteína
+            document.getElementById('ai-content-area').innerHTML = 
+                `<p style="text-align: center; color: #fca5a5; margin-top: 20px;">
+                    ⚠️ Ejecuta primero un análisis para que la IA tenga datos que resumir.
+                </p>`;
+        }
     };
-
     // Cerrar panel
     closeAiPanel.onclick = () => {
         aiSlidingPanel.classList.remove('open');
@@ -607,53 +616,48 @@ function updateLegendUI(scheme) {
     container.innerHTML = html;
 }
 
+// 1. Importación del SDK de Google (vía web)
+import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
+
+// 2. Configuración (Pon aquí tu clave real)
+const API_KEY = "AIzaSyCozK-JzOmj_QO1sgcFJY8FTzIHCYMR-2c"; 
+const genAI = new GoogleGenerativeAI(API_KEY);
+
+// --- FUNCIÓN IA DEFINITIVA (PLAN B) ---
 async function generateProteinSummary(proteinData) {
     const aiContentArea = document.getElementById('ai-content-area');
     const aiSlidingPanel = document.getElementById('ai-sliding-panel');
     
-    // 1. Mostrar estado de carga y abrir el panel automáticamente
-    aiContentArea.innerHTML = `<p style="text-align: center; color: #38bdf8; margin-top: 20px;">Analizando la proteína con IA... ⏳</p>`;
+    // 1. Abrir panel y mostrar carga
     aiSlidingPanel.classList.add('open');
-
-    const prompt = `
-        Actúa como un experto en bioinformática. 
-        Analiza estos datos de una proteína y genera un resumen de caracter divulgativo, destacando los puntos más relevantes para un público investigador:
-        - Nombre: ${proteinData.protein_metadata.protein_name}
-        - Organismo: ${proteinData.protein_metadata.organism}
-        - pLDDT Medio: ${proteinData.structural_data.confidence.plddt_mean}
-        - Alertas: ${proteinData.biological_data.toxicity_alerts.join(", ")}
-        - Solubilidad: ${proteinData.biological_data.solubility_prediction}
-    `;
+    aiContentArea.innerHTML = `<p style="text-align: center; color: #38bdf8; margin-top: 20px;">Analizando con Gemini Flash... ⏳</p>`;
 
     try {
-        const res = await fetch('/api/summary', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt: prompt })
-        });
 
-        if (!res.ok) throw new Error("Error en el servidor");
+        const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
-        const data = await res.json();
-        
-        // 2. Reemplazar los saltos de línea (\n) por etiquetas <br> para que el HTML los respete
-        const formattedText = data.summary.replace(/\n/g, '<br>');
-        
-        // 3. Inyectar el resultado final
-        aiContentArea.innerHTML = `<div>${formattedText}</div>`;
+        const prompt = `Resumen bioinformático corto para la proteína: ${proteinData.protein_metadata.protein_name}. 
+                        Organismo: ${proteinData.protein_metadata.organism}. 
+                        pLDDT: ${proteinData.structural_data.confidence.plddt_mean}. 
+                        Usa máximo 2 párrafos.`;
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+
+        // VALIDACIÓN: Solo intentamos el .replace si 'text' tiene algo
+        if (text) {
+            aiContentArea.innerHTML = `<div>${text.replace(/\n/g, '<br>')}</div>`;
+        } else {
+            throw new Error("La IA respondió vacío");
+        }
         
     } catch (error) {
-        console.error("Error generando resumen:", error);
-        aiContentArea.innerHTML = `<p style="color: #ef4444; text-align:center;"><strong>Error:</strong> No se pudo conectar con el servidor de IA.</p>`;
+        console.error("Detalle del error:", error);
+        aiContentArea.innerHTML = `
+            <p style="color: #ef4444; text-align:center;">
+                <strong>Error de Conexión</strong><br>
+                <small>Verifica tu API KEY o la consola (F12)</small>
+            </p>`;
     }
 }
-
-// Prueba manual: Al cargar la página, intenta llamar a la IA con datos falsos
-window.addEventListener('load', () => {
-    console.log("Probando conexión con API...");
-    generateProteinSummary({
-        protein_metadata: { protein_name: "Proteína de Prueba", organism: "Humano" },
-        structural_data: { confidence: { plddt_mean: 90 } },
-        biological_data: { toxicity_alerts: ["Ninguna"], solubility_prediction: "Alta" }
-    });
-}); 
