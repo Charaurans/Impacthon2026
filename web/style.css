@@ -495,7 +495,7 @@ textarea {
 .header-logo {
     display: block;
     margin: 0 auto 20px auto;
-    max-width: 180px;
+    max-width: 400px;
     height: auto;
     
     /* Aseguramos fondo transparente por si acaso */
