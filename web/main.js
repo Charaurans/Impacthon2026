@@ -193,7 +193,7 @@ window.onload = () => {
         currentPdbData = structural.pdb_file;
         
         if(!meta?.pdb_id){
-            viewer.addModel(currentpdbData, "pdb");
+            viewer.addModel(currentPdbData, "pdb");
             applyDefaultStyle();
             addLog("Proceso finalizado");
             return;
