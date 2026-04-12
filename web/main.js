@@ -647,3 +647,13 @@ async function generateProteinSummary(proteinData) {
         aiContentArea.innerHTML = `<p style="color: #ef4444; text-align:center;"><strong>Error:</strong> No se pudo conectar con el servidor de IA.</p>`;
     }
 }
+
+// Prueba manual: Al cargar la página, intenta llamar a la IA con datos falsos
+window.addEventListener('load', () => {
+    console.log("Probando conexión con API...");
+    generateProteinSummary({
+        protein_metadata: { protein_name: "Proteína de Prueba", organism: "Humano" },
+        structural_data: { confidence: { plddt_mean: 90 } },
+        biological_data: { toxicity_alerts: ["Ninguna"], solubility_prediction: "Alta" }
+    });
+});
