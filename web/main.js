@@ -147,8 +147,8 @@ window.onload = () => {
         currentAiSummary = "Analizando proteina...";
 
         // Mandamos el prompt a la ia
-        if(results.protein_metadata.protein_name == undefined){
-            currentAiSummary = "Esa proteina no se encuentra en nuestras bases de datos disponibles";
+        if (!results?.protein_metadata?.protein_name) {
+            currentAiSummary = "Esa proteína no se encuentra en nuestras bases de datos disponibles";
         }else{
             generateProteinSummary(currentResults);
         }
@@ -166,28 +166,21 @@ window.onload = () => {
         const solubilityText = document.getElementById('solubility');
         const weightText = document.getElementById('weightkda');
 
-        // Extraemos los valores
-        const nameValue = meta.protein_name;
-        const organismV = meta.organism;
-        const plddtAvg = structural.confidence.plddt_mean;
-        const solubility = biological.solubility_score;
-        const weight = biological.sequence_properties.molecular_weight_kda;
+        if(results?.protein_metadata?.protein_name){
+            // Extraemos los valores
+            const nameValue = meta.protein_name;
+            const organismV = meta.organism;
+            const plddtAvg = structural.confidence.plddt_mean;
+            const solubility = biological.solubility_score;
+            const weight = biological.sequence_properties.molecular_weight_kda;
 
-        // Asignamos los valores a los textos
-        nameText.innerText = nameValue;
-        organismText.innerText = organismV;
-        avgPlddtText.innerText = plddtAvg.toFixed(2);
-        solubilityText.innerText = solubility.toFixed(2);
-        weightText.innerText = weight.toFixed(2);
+            // Asignamos los valores a los textos
+            nameText.innerText = nameValue;
+            organismText.innerText = organismV;
+            avgPlddtText.innerText = plddtAvg.toFixed(2);
+            solubilityText.innerText = solubility.toFixed(2);
+            weightText.innerText = weight.toFixed(2);
 
-        if(document.getElementById('peso-mol')) {
-            document.getElementById('peso-mol').innerText = biological.sequence_properties.molecular_weight_kda.toFixed(2);
-        }
-        if(document.getElementById('estabilidad')) {
-            document.getElementById('estabilidad').innerText = biological.stability_status;
-        }
-        if(document.getElementById('solubilidad')) {
-            document.getElementById('solubilidad').innerText = biological.solubility_prediction;
         }
 
         // 5. Renderizado de Gráfico de Confianza (pLDDT por residuo)
@@ -198,7 +191,15 @@ window.onload = () => {
         }
         // 6. Configuración de Descargas
         currentPdbData = structural.pdb_file;
-        currentPdbId = meta.pdb_id || "sintetica";
+        
+        if(!meta?.pdb_id){
+            viewer.addModel(currentpdbData, "pdb");
+            applyDefaultStyle();
+            addLog("Proceso finalizado");
+            return;
+        }
+
+        currentPdbId = meta.pdb_id;
 
         document.getElementById('btn-download-pdb').onclick = () => {
             if (!currentPdbData) return addLog("SISTEMA: No hay PDB disponible.");
