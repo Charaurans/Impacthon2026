@@ -8,7 +8,7 @@
         <link rel="stylesheet" href="style.css">
         <script src="https://cdnjs.cloudflare.com/ajax/libs/3Dmol/2.0.4/3Dmol-min.js"></script>
         <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
-        <script src="main.js"></script>
+        <script type="module" src="main.js"></script>
     </head>
 
     <body>
@@ -132,6 +132,18 @@
                 </div>
             </div>
 
+            <button id="btn-ai-panel" class="floating-ai-btn">✨ Ver Resumen de IA</button>
+
+            <div id="ai-sliding-panel" class="bottom-panel">
+                <div class="panel-header">
+                    <h3>Análisis de Inteligencia Artificial</h3>
+                    <button id="close-ai-panel" class="btn-sm">Cerrar</button>
+                </div>
+                <div id="ai-content-area">
+                    <p class="placeholder-text">Aún no hay datos generados por la IA.</p>
+                </div>
+            </div>
+            
         </section>
 
     </body>

@@ -212,6 +212,20 @@ window.onload = () => {
     } finally {
         overlay.style.display = 'none';
     }
+
+    const btnAiPanel = document.getElementById('btn-ai-panel');
+    const aiSlidingPanel = document.getElementById('ai-sliding-panel');
+    const closeAiPanel = document.getElementById('close-ai-panel');
+
+    // Abrir panel
+    btnAiPanel.onclick = () => {
+        aiSlidingPanel.classList.add('open');
+    };
+
+    // Cerrar panel
+    closeAiPanel.onclick = () => {
+        aiSlidingPanel.classList.remove('open');
+    };
 };
 
     dropZone.addEventListener('drop', e => {
@@ -591,4 +605,45 @@ function updateLegendUI(scheme) {
             </div>`;
     });
     container.innerHTML = html;
+}
+
+async function generateProteinSummary(proteinData) {
+    const aiContentArea = document.getElementById('ai-content-area');
+    const aiSlidingPanel = document.getElementById('ai-sliding-panel');
+    
+    // 1. Mostrar estado de carga y abrir el panel automáticamente
+    aiContentArea.innerHTML = `<p style="text-align: center; color: #38bdf8; margin-top: 20px;">Analizando la proteína con IA... ⏳</p>`;
+    aiSlidingPanel.classList.add('open');
+
+    const prompt = `
+        Actúa como un experto en bioinformática. 
+        Analiza estos datos de una proteína y genera un resumen de caracter divulgativo, destacando los puntos más relevantes para un público investigador:
+        - Nombre: ${proteinData.protein_metadata.protein_name}
+        - Organismo: ${proteinData.protein_metadata.organism}
+        - pLDDT Medio: ${proteinData.structural_data.confidence.plddt_mean}
+        - Alertas: ${proteinData.biological_data.toxicity_alerts.join(", ")}
+        - Solubilidad: ${proteinData.biological_data.solubility_prediction}
+    `;
+
+    try {
+        const res = await fetch('/api/summary', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt: prompt })
+        });
+
+        if (!res.ok) throw new Error("Error en el servidor");
+
+        const data = await res.json();
+        
+        // 2. Reemplazar los saltos de línea (\n) por etiquetas <br> para que el HTML los respete
+        const formattedText = data.summary.replace(/\n/g, '<br>');
+        
+        // 3. Inyectar el resultado final
+        aiContentArea.innerHTML = `<div>${formattedText}</div>`;
+        
+    } catch (error) {
+        console.error("Error generando resumen:", error);
+        aiContentArea.innerHTML = `<p style="color: #ef4444; text-align:center;"><strong>Error:</strong> No se pudo conectar con el servidor de IA.</p>`;
+    }
 }
