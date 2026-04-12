@@ -8,6 +8,8 @@ let currentPdbData = null;
 let currentPdbId = "sintetica";
 let proteinHistory = [];
 let currentResults = null;
+let currentAiSummary = null;
+let isAILoading = false;
 
 // --- NAVEGACIÓN SPA ---
 const showSection = (sectionId) => {
@@ -142,6 +144,14 @@ window.onload = () => {
 
         currentResults = results;
 
+        // Limpiamos el resumen anterior de la ia
+        currentAiSummary = null;    
+        isAILoading = true;
+
+        // Mandamos el prompt a la ia
+        generateProteinSummary(currentResults);
+        addLog("La ia está generando una descripción de la proteína");
+
         // Extraemos referencias de los objetos principales
         const meta = results.protein_metadata;
         const structural = results.structural_data;
@@ -221,8 +231,10 @@ window.onload = () => {
         aiSlidingPanel.classList.add('open');
         
         // Verificamos si ya hay resultados cargados del job
-        if (currentResults) {
-            generateProteinSummary(currentResults);
+        if (currentAiSummary) {
+            aiContentArea.innerHTML = `<div>${currentAiSummary}</div>`;
+        } else if(isAILoading){
+            aiContentArea.innerHTML = `<div>${currentAiSummary}</div>`;
         } else {
             // Mensaje por si el usuario pulsa el botón antes de renderizar una proteína
             document.getElementById('ai-content-area').innerHTML = 
@@ -535,8 +547,7 @@ function renderPAEHeatmap(paeMatrix) {
             "<b>Relación de Confianza</b><br>" +
             "Residuo i: %{x}<br>" +
             "Residuo j: %{y}<br>" +
-            "Error: %{z:.1f} Å<br>" +
-            "<extra>Valores bajos (Azul) indican que la posición relativa es muy fiable.</extra>"
+            "Error: %{z:.1f} Å<br>"
     }];
 
     const layout = {
@@ -625,21 +636,31 @@ const genAI = new GoogleGenerativeAI(API_KEY);
 
 // --- FUNCIÓN IA DEFINITIVA (PLAN B) ---
 async function generateProteinSummary(proteinData) {
-    const aiContentArea = document.getElementById('ai-content-area');
-    const aiSlidingPanel = document.getElementById('ai-sliding-panel');
-    
-    // 1. Abrir panel y mostrar carga
-    aiSlidingPanel.classList.add('open');
-    aiContentArea.innerHTML = `<p style="text-align: center; color: #38bdf8; margin-top: 20px;">Analizando con Gemini Flash... ⏳</p>`;
 
     try {
 
         const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
-        const prompt = `Resumen bioinformático corto para la proteína: ${proteinData.protein_metadata.protein_name}. 
-                        Organismo: ${proteinData.protein_metadata.organism}. 
-                        pLDDT: ${proteinData.structural_data.confidence.plddt_mean}. 
-                        Usa máximo 2 párrafos.`;
+        const prompt = `
+            Actúa como un experto en biología. 
+            Tu objetivo es realizar un análisis técnico y educativo de una predicción de estructura proteica para investigadores.
+
+            DATOS DE ENTRADA:
+            - Proteína: ${proteinData.protein_metadata.protein_name}
+            - Organismo: ${proteinData.protein_metadata.organism}
+            - Confianza Media (pLDDT): ${proteinData.structural_data.confidence.plddt_mean}%
+            - Peso Molecular: ${proteinData.biological_data.sequence_properties.molecular_weight_kda} kDa
+
+            INSTRUCCIONES DE FORMATO:
+            1. **Resumen Biológico**: Explica brevemente la función conocida o probable de esta proteína en el organismo citado. Usa terminología científica precisa.
+            2. **Análisis de Confianza Estructural**: Interpreta el valor pLDDT. Explica qué significa para un investigador (ej. si el modelo es fiable para docking, si hay regiones intrínsecamente desordenadas, etc.).
+            3. **Relevancia**: Menciona una posible aplicación en investigación (ej. diseño de fármacos, estudios de mutagénesis).
+
+            REGLAS:
+            - Máximo 250 palabras.
+            - Tono profesional, académico y pedagógico.
+            - No uses introducciones como "Claro, aquí tienes el resumen". Ve directo al grano.
+            `;
 
         const result = await model.generateContent(prompt);
         const response = await result.response;
@@ -647,7 +668,14 @@ async function generateProteinSummary(proteinData) {
 
         // VALIDACIÓN: Solo intentamos el .replace si 'text' tiene algo
         if (text) {
-            aiContentArea.innerHTML = `<div>${text.replace(/\n/g, '<br>')}</div>`;
+            currentAiSummary = text.replace(/\n/g, '<br>'); // Guardamos en caché
+            isAiLoading = false;
+            
+            // Si por casualidad el usuario tiene el panel abierto mientras termina, actualizamos
+            const aiContentArea = document.getElementById('ai-content-area');
+            if (document.getElementById('ai-sliding-panel').classList.contains('open')) {
+                aiContentArea.innerHTML = `<div>${currentAiSummary}</div>`;
+            }
         } else {
             throw new Error("La IA respondió vacío");
         }
