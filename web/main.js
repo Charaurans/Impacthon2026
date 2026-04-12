@@ -656,4 +656,4 @@ window.addEventListener('load', () => {
         structural_data: { confidence: { plddt_mean: 90 } },
         biological_data: { toxicity_alerts: ["Ninguna"], solubility_prediction: "Alta" }
     });
-});
+}); 
