@@ -8,8 +8,7 @@ let currentPdbData = null;
 let currentPdbId = "sintetica";
 let proteinHistory = [];
 let currentResults = null;
-let currentAiSummary = null;
-let isAILoading = false;
+let currentAiSummary = "Analizando proteina...";
 
 // --- NAVEGACIÓN SPA ---
 const showSection = (sectionId) => {
@@ -145,11 +144,14 @@ window.onload = () => {
         currentResults = results;
 
         // Limpiamos el resumen anterior de la ia
-        currentAiSummary = null;    
-        isAILoading = true;
+        currentAiSummary = "Analizando proteina...";
 
         // Mandamos el prompt a la ia
-        generateProteinSummary(currentResults);
+        if(results.protein_metadata.protein_name == undefined){
+            currentAiSummary = "Esa proteina no se encuentra en nuestras bases de datos disponibles";
+        }else{
+            generateProteinSummary(currentResults);
+        }
         addLog("La ia está generando una descripción de la proteína");
 
         // Extraemos referencias de los objetos principales
@@ -159,18 +161,24 @@ window.onload = () => {
 
         // Conseguimos los textos del html
         const nameText = document.getElementById('name');
+        const organismText = document.getElementById('organism');
         const avgPlddtText = document.getElementById('avg-plddt');
         const solubilityText = document.getElementById('solubility');
+        const weightText = document.getElementById('weightkda');
 
         // Extraemos los valores
         const nameValue = meta.protein_name;
+        const organismV = meta.organism;
         const plddtAvg = structural.confidence.plddt_mean;
         const solubility = biological.solubility_score;
+        const weight = biological.sequence_properties.molecular_weight_kda;
 
         // Asignamos los valores a los textos
         nameText.innerText = nameValue;
+        organismText.innerText = organismV;
         avgPlddtText.innerText = plddtAvg.toFixed(2);
         solubilityText.innerText = solubility.toFixed(2);
+        weightText.innerText = weight.toFixed(2);
 
         if(document.getElementById('peso-mol')) {
             document.getElementById('peso-mol').innerText = biological.sequence_properties.molecular_weight_kda.toFixed(2);
@@ -209,7 +217,7 @@ window.onload = () => {
         setTimeout(() => {
             if (viewer) {
                 const snapshot = viewer.pngURI();
-                addToHistory(currentPdbId, currentPdbData, snapshot);
+                addToHistory(currentPdbId, currentPdbData, snapshot, results);
             }
         }, 1200);
 
@@ -229,19 +237,6 @@ window.onload = () => {
     // Abrir panel
     btnAiPanel.onclick = () => {
         aiSlidingPanel.classList.add('open');
-        
-        // Verificamos si ya hay resultados cargados del job
-        if (currentAiSummary) {
-            aiContentArea.innerHTML = `<div>${currentAiSummary}</div>`;
-        } else if(isAILoading){
-            aiContentArea.innerHTML = `<div>${currentAiSummary}</div>`;
-        } else {
-            // Mensaje por si el usuario pulsa el botón antes de renderizar una proteína
-            document.getElementById('ai-content-area').innerHTML = 
-                `<p style="text-align: center; color: #fca5a5; margin-top: 20px;">
-                    ⚠️ Ejecuta primero un análisis para que la IA tenga datos que resumir.
-                </p>`;
-        }
     };
     // Cerrar panel
     closeAiPanel.onclick = () => {
@@ -257,7 +252,6 @@ window.onload = () => {
                 const content = event.target.result;
                 if (content.trim().startsWith('>')) {
                     fastaTextArea.value = content.trim();
-                    document.getElementById('status').innerText = `Archivo cargado: ${file.name}`;
                 }
             };
             reader.readAsText(file);
@@ -342,7 +336,6 @@ window.onload = () => {
                 const content = event.target.result;
                 if (content.trim().startsWith('>')) {
                     document.getElementById('fasta').value = content.trim();
-                    document.getElementById('status').innerText = `Archivo cargado: ${file.name}`;
                 }
             };
             reader.readAsText(file);
@@ -464,17 +457,18 @@ const updateHistoryUI = () => {
 };
 
 // Función auxiliar para añadir una proteína al historial
-const addToHistory = (name, pdb, img) => {
-    proteinHistory.unshift({ name, pdb, img });
+const addToHistory = (name, pdb, img, allData) => {
+    proteinHistory.unshift({ name, pdb, img, allData });
     if (proteinHistory.length > 3) proteinHistory.pop();
     updateHistoryUI();
 };
 
 // Función auxiliar para cargar el historial
-const loadFromHistory = (index) => {
+window.loadFromHistory = (index) => {
     const item = proteinHistory[index];
     currentPdbData = item.pdb;
     currentPdbId = item.name;
+    updateStatsUI(item.allData)
     renderProtein(item.name, item.pdb);
     addLog(`Restaurada desde historial: ${item.name}`);
 };
@@ -633,51 +627,36 @@ import { GoogleGenerativeAI } from "https://esm.run/@google/generative-ai";
 // 2. Configuración (Pon aquí tu clave real)
 const API_KEY = "AIzaSyCozK-JzOmj_QO1sgcFJY8FTzIHCYMR-2c"; 
 const genAI = new GoogleGenerativeAI(API_KEY);
+const aiContentArea = document.getElementById("ai-content-area")
 
 // --- FUNCIÓN IA DEFINITIVA (PLAN B) ---
 async function generateProteinSummary(proteinData) {
-
+    const FUNCTION_URL = "https://getprotsummary-ao2typf24a-uc.a.run.app/getProtSummary";
     try {
+        const meta =  proteinData.protein_metadata;
+        const structural = proteinData.structural_data;
+        const biological = proteinData.biological_data;
+        if (aiContentArea) aiContentArea.innerHTML = "<p>Generando análisis con IA...</p>";
+        
+        const response = await fetch(FUNCTION_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                proteinName: meta.protein_name,
+                organism: meta.organism,
+                plddt: structural.confidence.plddt_mean,
+                weight: biological.sequence_properties.molecular_weight_kda
+            })
+        });
 
-        const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+        const data = await response.json();
+        currentAiSummary = data.summary;
+        const formattedText = currentAiSummary.split('\n')
+            .map(line => line.trim() === "" ? "<br>" : `<p style="margin-bottom: 8px;">${line}</p>`).join('');
 
-        const prompt = `
-            Actúa como un experto en biología. 
-            Tu objetivo es realizar un análisis técnico y educativo de una predicción de estructura proteica para investigadores.
-
-            DATOS DE ENTRADA:
-            - Proteína: ${proteinData.protein_metadata.protein_name}
-            - Organismo: ${proteinData.protein_metadata.organism}
-            - Confianza Media (pLDDT): ${proteinData.structural_data.confidence.plddt_mean}%
-            - Peso Molecular: ${proteinData.biological_data.sequence_properties.molecular_weight_kda} kDa
-
-            INSTRUCCIONES DE FORMATO:
-            1. **Resumen Biológico**: Explica brevemente la función conocida o probable de esta proteína en el organismo citado. Usa terminología científica precisa.
-            2. **Análisis de Confianza Estructural**: Interpreta el valor pLDDT. Explica qué significa para un investigador (ej. si el modelo es fiable para docking, si hay regiones intrínsecamente desordenadas, etc.).
-            3. **Relevancia**: Menciona una posible aplicación en investigación (ej. diseño de fármacos, estudios de mutagénesis).
-
-            REGLAS:
-            - Máximo 250 palabras.
-            - Tono profesional, académico y pedagógico.
-            - No uses introducciones como "Claro, aquí tienes el resumen". Ve directo al grano.
-            `;
-
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
-
-        // VALIDACIÓN: Solo intentamos el .replace si 'text' tiene algo
-        if (text) {
-            currentAiSummary = text.replace(/\n/g, '<br>'); // Guardamos en caché
-            isAiLoading = false;
-            
-            // Si por casualidad el usuario tiene el panel abierto mientras termina, actualizamos
-            const aiContentArea = document.getElementById('ai-content-area');
-            if (document.getElementById('ai-sliding-panel').classList.contains('open')) {
-                aiContentArea.innerHTML = `<div>${currentAiSummary}</div>`;
-            }
-        } else {
-            throw new Error("La IA respondió vacío");
+            aiContentArea.innerHTML = `<div>${formattedText}</div>`;
+        if (currentAiSummary == ""){
+            throw new Error("La IA no pudo responder a eso");
         }
         
     } catch (error) {
@@ -689,3 +668,30 @@ async function generateProteinSummary(proteinData) {
             </p>`;
     }
 }
+
+const updateStatsUI = (proteinData) => {
+    const nameEl = document.getElementById('name');
+    const organismEl = document.getElementById('organism');
+    const plddtEl = document.getElementById('avg-plddt');
+    const weightEl = document.getElementById('weightkda');
+    const solEl = document.getElementById('solubility');
+
+    // 2. Actualización de los textos
+    if (nameEl) nameEl.innerText = proteinData.protein_metadata.protein_name;
+    if (organismEl) organismEl.innerText = proteinData.protein_metadata.organism;
+    
+    if (plddtEl) {
+        const plddt = proteinData.structural_data.confidence.plddt_mean;
+        plddtEl.innerText = plddt.toFixed(2);
+    }
+
+    if (weightEl) {
+        const weight = proteinData.biological_data.sequence_properties.molecular_weight_kda;
+        weightEl.innerText = weight.toFixed(2);
+    }
+
+    if(solEl){
+        const solubility = proteinData.biological_data.solubility_score;
+        solEl.innerText = solubility.toFixed(2);
+    }
+};
