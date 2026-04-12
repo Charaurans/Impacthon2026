@@ -483,25 +483,23 @@ textarea {
     margin-top: 40px;
 }
 
+/* Este es el contenedor que ya tienes en tu HTML */
+#sec-login {
+    display: flex;
+    flex-direction: column; /* Apila los elementos uno debajo de otro */
+    align-items: center;    /* Centra todos los hijos horizontalmente */
+    text-align: center;
+}
+
+/* Estilos específicos para la imagen */
 .header-logo {
-    max-width: 120px;  /* Ancho máximo de la imagen (ajústalo a tu gusto) */
-    height: auto;      /* Mantiene la proporción */
-    margin-bottom: 15px; /* Espacio *debajo* de la imagen, *encima* del título */
-    /* Opcional: Sombra suave para que destaque */
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
-}
-
-/* 3. Estilos del Título (Asegura que no tenga márgenes extra) */
-.header-title {
-    margin: 0; /* Eliminamos márgenes por defecto para controlar el espaciado nosotros */
-    font-size: 2.5rem; /* Tamaño del título */
-    color: #1a1a1a;    /* Color oscuro profesional */
-    font-weight: 800;  /* Muy negrita */
-}
-
-/* Opcional: Estilo del subtítulo */
-.header-subtitle {
-    margin-top: 5px;
-    color: #666;
-    font-size: 1.1rem;
+    display: block;
+    margin: 0 auto 20px auto;
+    max-width: 180px;
+    height: auto;
+    
+    /* Aseguramos fondo transparente por si acaso */
+    background-color: transparent;
+    border: none;
+    outline: none;
 }
